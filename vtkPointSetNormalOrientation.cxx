@@ -54,22 +54,16 @@ int vtkPointSetNormalOrientation::RequestData(vtkInformation *vtkNotUsed(request
   vtkInformation *outInfo = outputVector->GetInformationObject(0);
 
   // Get the input and ouptut
-  vtkPolyData *input = vtkPolyData::SafeDownCast(
-      inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkPolyData *output = vtkPolyData::SafeDownCast(
-      outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPolyData *input = vtkPolyData::SafeDownCast( inInfo->Get(vtkDataObject::DATA_OBJECT()) );
+  vtkPolyData *output = vtkPolyData::SafeDownCast( outInfo->Get(vtkDataObject::DATA_OBJECT()) );
 
-  /*
-  vtkSmartPointer<vtkNearestNeighborGraph> NearestNeighborGraphFilter = vtkSmartPointer<vtkNearestNeighborGraph>::New();
-  NearestNeighborGraphFilter->SetInput(input);
-  NearestNeighborGraphFilter->SetkNeighbors(this->KNearestNeighbors);
-  NearestNeighborGraphFilter->Update();
-  */
   vtkSmartPointer<vtkRiemannianGraphFilter> riemannianGraphFilter = vtkSmartPointer<vtkRiemannianGraphFilter>::New();
   riemannianGraphFilter->SetInputData(input);
+  riemannianGraphFilter->SetkNeighbors( KNearestNeighbors );
   riemannianGraphFilter->Update();
-
   vtkUndirectedGraph* riemannianGraph = vtkUndirectedGraph::SafeDownCast(riemannianGraphFilter->GetOutput());
+
+  std::cout << "graph done" << std::endl;
 
   std::string message = "Constructed connectivity graph.";
   this->InvokeEvent(this->ProgressEvent, &message);
@@ -92,17 +86,24 @@ int vtkPointSetNormalOrientation::RequestData(vtkInformation *vtkNotUsed(request
     //std::cout << "Source: " << Edge.Source << " Target: " << Edge.Target << std::endl;
     double source[3];
     double target[3];
-    riemannianGraph->GetPoints()->GetPoint(Edge.Source, source);
-    riemannianGraph->GetPoints()->GetPoint(Edge.Target, target);
+    input->GetPointData()->GetNormals()->GetTuple( Edge.Source, source );
+    vtkMath::Normalize( source );
 
-    //double w = vtkMath::Dot(source, target);
-    double w = 1.0 - fabs(vtkMath::Dot(source, target));
-    //std::cout << "w: " << w << std::endl;
+    input->GetPointData()->GetNormals()->GetTuple( Edge.Target, target );
+    vtkMath::Normalize( target );
 
-    //naive
-    //double w = 1.0;
+    double w = std::abs( 1.0 - std::abs( vtkMath::Dot(source, target) ) );
+
+    if( w < 0. )
+      {
+        std::cout << "ERROR " << w << std::endl;
+        exit( 1 );
+      }
+
     weights->InsertNextValue(w);
     }
+
+  riemannianGraph->GetEdgeData()->RemoveArray( "Weights" );
 
   // Add the edge weight array to the graph
   riemannianGraph->GetEdgeData()->AddArray(weights);
@@ -155,7 +156,7 @@ int vtkPointSetNormalOrientation::RequestData(vtkInformation *vtkNotUsed(request
   unsigned int flippedNormals = 0;
   while(dfsIterator->HasNext())
     {
-    nodesVisited++;
+    ++nodesVisited;
     vtkIdType nextVertex = dfsIterator->Next();
     //std::cout << "Next vertex: " << NextVertex << std::endl;
     double oldNormal[3];
@@ -166,8 +167,7 @@ int vtkPointSetNormalOrientation::RequestData(vtkInformation *vtkNotUsed(request
       {
       // Flip the normal
       vtkMath::MultiplyScalar(oldNormal, -1.0);
-      flippedNormals++;
-      //std::cout << "New normal: " << OldNormal[0] << " " << OldNormal[1] << " " << OldNormal[2] << " ";
+      ++flippedNormals;
       }
 
     // std::cout << std::endl;

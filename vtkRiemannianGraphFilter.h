@@ -36,4 +36,3 @@ class vtkRiemannianGraphFilter : public vtkGraphAlgorithm
 void TreeToUndirectedGraph(vtkTree* Tree, vtkMutableUndirectedGraph* UndirectedGraph);
 
 #endif
-

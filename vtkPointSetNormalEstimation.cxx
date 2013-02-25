@@ -12,6 +12,7 @@
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkSmartPointer.h>
+#include <vtkDoubleArray.h>
 
 #include "vtkPointSetNormalEstimation.h"
 
@@ -21,7 +22,7 @@ vtkPointSetNormalEstimation::vtkPointSetNormalEstimation()
 {
   this->NumberOfNeighbors = 4;
   this->Radius = 1.0;
-  this->Mode = RADIUS;
+  this->Mode = FIXED_NUMBER;
   this->IterateEvent = vtkCommand::UserEvent + 1;
 }
 
@@ -48,7 +49,7 @@ int vtkPointSetNormalEstimation::RequestData(vtkInformation *vtkNotUsed(request)
   vtkPolyData *output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   // Create normal array
-  vtkSmartPointer<vtkFloatArray> normalArray = vtkSmartPointer<vtkFloatArray>::New();
+  vtkSmartPointer<vtkDoubleArray> normalArray = vtkSmartPointer<vtkDoubleArray>::New();
   normalArray->SetNumberOfComponents( 3 );
   normalArray->SetNumberOfTuples( input->GetNumberOfPoints() );
   normalArray->SetName( "Normals" );
@@ -58,11 +59,12 @@ int vtkPointSetNormalEstimation::RequestData(vtkInformation *vtkNotUsed(request)
 
   // std::cout << "this->Radius: " << this->Radius << std::endl;
 
+  double point[3];
+
   // Estimate the normal at each point.
   for(vtkIdType pointId = 0; pointId < input->GetNumberOfPoints(); ++pointId)
     {
     this->InvokeEvent(this->IterateEvent, &pointId);
-    double point[3];
     input->GetPoint(pointId, point);
 
     vtkSmartPointer<vtkIdList> neighborIds = vtkSmartPointer<vtkIdList>::New();
@@ -86,7 +88,7 @@ int vtkPointSetNormalEstimation::RequestData(vtkInformation *vtkNotUsed(request)
     BestFitPlane(input->GetPoints(), bestPlane, neighborIds);
     double normal[3];
     bestPlane->GetNormal(normal);
-    normalArray->SetTuple( pointId, normal ) ;
+    normalArray->SetTuple( pointId, normal );
     }
 
   input->GetPointData()->SetNormals(normalArray);
@@ -123,10 +125,10 @@ void CenterOfMass(vtkPoints* points, double* center, vtkIdList* idsToUse)
     center[2] += point[2];
     }
 
-  double numberOfPoints = static_cast<double>(idsToUse->GetNumberOfIds());
-  center[0] = center[0]/numberOfPoints;
-  center[1] = center[1]/numberOfPoints;
-  center[2] = center[2]/numberOfPoints;
+  double invN = 1. / static_cast<double>(idsToUse->GetNumberOfIds());
+  center[0] *= invN;
+  center[1] *= invN;
+  center[2] *= invN;
 }
 
 void CenterOfMass(vtkPoints* points, double* center)
@@ -146,10 +148,10 @@ void CenterOfMass(vtkPoints* points, double* center)
     center[2] += point[2];
     }
 
-  double numberOfPoints = static_cast<double>(points->GetNumberOfPoints());
-  center[0] = center[0]/numberOfPoints;
-  center[1] = center[1]/numberOfPoints;
-  center[2] = center[2]/numberOfPoints;
+  double invN = 1. / static_cast<double>(points->GetNumberOfPoints());
+  center[0] *= invN;
+  center[1] *= invN;
+  center[2] *= invN;
 }
 
 /* allocate memory for an nrow x ncol matrix */

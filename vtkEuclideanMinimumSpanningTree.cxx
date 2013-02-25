@@ -10,6 +10,7 @@
 #include <vtkMutableUndirectedGraph.h>
 #include <vtkAdjacentVertexIterator.h>
 #include <vtkBoostPrimMinimumSpanningTree.h>
+#include <vtkKdTreePointLocator.h>
 
 #include <vtkExecutive.h>
 #include <vtkInformation.h>
@@ -52,8 +53,11 @@ int vtkEuclideanMinimumSpanningTree::RequestData(vtkInformation *vtkNotUsed(requ
   // Create a vector to store vertex IDs
   std::vector<vtkIdType> vertices(input->GetNumberOfPoints());
 
+  vtkIdType N = input->GetNumberOfPoints();
+  int K = this->KNeighbors + 1;
+
   // Add a vertex for every point
-  for(vtkIdType i = 0; i < input->GetNumberOfPoints(); i++)
+  for(vtkIdType i = 0; i < N; i++)
   {
     vertices[i] = g->AddVertex();
   }
@@ -63,50 +67,56 @@ int vtkEuclideanMinimumSpanningTree::RequestData(vtkInformation *vtkNotUsed(requ
   weights->SetNumberOfComponents(1);
   weights->SetName("Weights");
 
+  vtkSmartPointer<vtkKdTreePointLocator> KDTree = vtkSmartPointer<vtkKdTreePointLocator>::New();
+  KDTree->SetDataSet(input);
+  KDTree->BuildLocator();
+
+  vtkSmartPointer<vtkAdjacentVertexIterator> iterator = vtkSmartPointer<vtkAdjacentVertexIterator>::New();
+
   // Add an edge from every point to every other point (if they do not already exist and they are not self loops)
-  for(vtkIdType pointID = 0; pointID < input->GetNumberOfPoints(); pointID++)
+  for(vtkIdType i = 0; i < N; i++)
   {
-    for(vtkIdType neighborID = 0; neighborID < input->GetNumberOfPoints(); neighborID++)
+    double TestPoint[3];
+    input->GetPoint(i, TestPoint);
+
+    vtkSmartPointer<vtkIdList> Result = vtkSmartPointer<vtkIdList>::New();
+    KDTree->FindClosestNPoints(K, TestPoint, Result);
+
+    for(int j = 1; j < K; j++)
       {
-      // Do not create self loops
-      if(pointID == neighborID)
-        {
-        continue;
-        }
+      vtkIdType neighbor = Result->GetId(j);
 
-      // Check if the edge already exists
-      vtkSmartPointer<vtkAdjacentVertexIterator> iterator = vtkSmartPointer<vtkAdjacentVertexIterator>::New();
-      g->GetAdjacentVertices(pointID, iterator);
-
-      bool edgeAlreadyExists = false;
-      while(iterator->HasNext())
+      if( i != neighbor )
         {
-          if(iterator->Next() == neighborID)
+        // Check if the edge already exists
+        g->GetAdjacentVertices(i, iterator);
+
+        bool edgeAlreadyExists = false;
+        while(iterator->HasNext())
           {
-            edgeAlreadyExists = true;
-            break;
+            if(iterator->Next() == neighbor)
+            {
+              edgeAlreadyExists = true;
+              break;
+            }
           }
-        }
 
-      // Add the new edge
-      if(!edgeAlreadyExists)
-        {
-        // Get the coordinates of the two points
-        double point[3];
-        input->GetPoint(pointID, point);
+        // Add the new edge
+        if(!edgeAlreadyExists )
+          {
+          // Get the coordinates of the two points
+          double neighborPoint[3];
+          input->GetPoint(neighbor, neighborPoint);
 
-        double neighbor[3];
-        input->GetPoint(neighborID, neighbor);
+          g->AddEdge(i, neighbor);
 
-        g->AddEdge(pointID, neighborID);
+          // Set the edge weight to the distance between the points
+          double w = sqrt(
+                vtkMath::Distance2BetweenPoints(TestPoint, neighborPoint) );
 
-        // Set the edge weight to the distance between the points
-        double neighborPoint[3];
-        input->GetPoint(neighborID, neighborPoint);
-        double w = sqrt(vtkMath::Distance2BetweenPoints(point, neighbor));
-        // std::cout << "Distance: " << w << std::endl;
-        weights->InsertNextValue(w);
-
+          // std::cout << "Distance: " << w << std::endl;
+          weights->InsertNextValue(w);
+          }
         }
     } // End neighbor loop
   } // End point loop

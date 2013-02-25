@@ -13,15 +13,18 @@ class vtkEuclideanMinimumSpanningTree : public vtkTreeAlgorithm
     vtkTypeMacro(vtkEuclideanMinimumSpanningTree, vtkTreeAlgorithm);
     void PrintSelf(ostream &os, vtkIndent indent);
 
+    vtkSetMacro( KNeighbors, int );
+    vtkGetMacro( KNeighbors, int );
+
   protected:
-    vtkEuclideanMinimumSpanningTree(){}
+    vtkEuclideanMinimumSpanningTree(){ KNeighbors = 100;}
     ~vtkEuclideanMinimumSpanningTree(){}
     int FillInputPortInformation( int port, vtkInformation* info );
     int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *); //the function that makes this class work with the vtk pipeline
     int RequestDataObject(vtkInformation *, vtkInformationVector **, vtkInformationVector *); //the function that makes this class work with the vtk pipeline
 
   private:
-
+    int KNeighbors;
 };
 
 #endif

@@ -17,7 +17,8 @@ target_link_libraries(PointSetNormalEstimationExample ${VTK_LIBRARIES} )
 add_executable(PointSetNormalOrientationExample PointSetNormalOrientation.cpp
 ${PointSetProcessingDir}/vtkPointSetNormalOrientation.cxx 
 ${PointSetProcessingDir}/vtkRiemannianGraphFilter.cxx 
-${PointSetProcessingDir}/vtkEuclideanMinimumSpanningTree.cxx)
+${PointSetProcessingDir}/vtkEuclideanMinimumSpanningTree.cxx
+)
 target_link_libraries(PointSetNormalOrientationExample ${VTK_LIBRARIES})
 
 add_executable(GenerateData GenerateData.cpp)

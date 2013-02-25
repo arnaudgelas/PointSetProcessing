@@ -87,11 +87,6 @@ int vtkRiemannianGraphFilter::RequestData(vtkInformation *vtkNotUsed(request),
   kdTree->SetDataSet(input);
   kdTree->BuildLocator();
 
-  // Create the new edge weight array
-  vtkSmartPointer<vtkDoubleArray> weights = vtkSmartPointer<vtkDoubleArray>::New();
-  weights->SetNumberOfComponents(1);
-  weights->SetName("Weights");
-
   // Find the nearest neighbors to each point and add adges between them, if they do not already exist and they are not self loops
   for(vtkIdType pointID = 0; pointID < input->GetNumberOfPoints(); pointID++)
     {

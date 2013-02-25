@@ -36,7 +36,8 @@ class vtkPointSetNormalEstimation : public vtkPolyDataAlgorithm
 
   protected:
     vtkPointSetNormalEstimation();
-    ~vtkPointSetNormalEstimation() {};
+    ~vtkPointSetNormalEstimation() {}
+
     int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
 
   private:

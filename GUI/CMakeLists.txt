@@ -1,18 +1,24 @@
-FIND_PACKAGE(Qt4 REQUIRED)
-INCLUDE(${QT_USE_FILE})
+find_package( Qt4 REQUIRED )
+include( ${QT_USE_FILE} )
 
 add_subdirectory(Widgets)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(./Widgets)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Widgets
+)
 
 QT4_WRAP_UI(PointSetProcessingUI PointSetProcessingWidget.ui
 Widgets/LabeledSlider.ui Widgets/CoordinateEditWidget.ui)
 QT4_WRAP_CPP(PointSetProcessingMOC PointSetProcessingWidget.h VTKComputationThread.h
 Widgets/LabeledSlider.h Widgets/FloatSlider.h Widgets/CoordinateEditWidget.h)
 
-add_library(libPointSetProcessing ../vtkPointSetNormalEstimation.cxx ../vtkPointSetNormalOrientation.cxx ../vtkRiemannianGraphFilter.cxx ../vtkEuclideanMinimumSpanningTree.cxx
-../vtkPointSetNormalOrientationToPoint.cxx)
+add_library(libPointSetProcessing
+../vtkPointSetNormalEstimation.cxx
+../vtkPointSetNormalOrientation.cxx
+../vtkRiemannianGraphFilter.cxx
+../vtkEuclideanMinimumSpanningTree.cxx
+../vtkPointSetNormalOrientationToPoint.cxx
+)
 
 add_executable(PointSetProcessing PointSetProcessing.cpp PointSetProcessingWidget.cpp
 Widgets/LabeledSlider.cpp Widgets/FloatSlider.cpp Widgets/CoordinateEditWidget.cpp
